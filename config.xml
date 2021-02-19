@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <metadata>
+        <name>LSNextcloud</name>
+        <type>plugin</type>
+        <creationDate>2021-02-17</creationDate>
+        <last_update>2021-02-17</last_update>
+        <author>Vitor Mattos (Lyseon Tech)</author>
+        <authorUrl>https://github.com/lyseontech</authorUrl>
+        <supportUrl>https://github.com/lyseontech/LSNextcloud</supportUrl>
+        <copyright>Copyright (C) 2021 LibreCode. All rights reserved.</copyright>
+        <license>GNU General Public License version 2 or later</license>
+        <version>1.0.0</version>
+        <description><![CDATA[Interate LS to Nextcloud]]></description>
+    </metadata>
+
+    <compatibility>
+        <version>4.0</version>
+        <version>3.0</version>
+    </compatibility>
+</config>
