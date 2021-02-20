@@ -2,6 +2,8 @@
 
 Save all survey responses and their attachments automatically to a folder in your Nextcloud.
 
+<img src="docs/images/screenshot.png" />
+
 ## Plugin Installation
 
 ### By zipfile
