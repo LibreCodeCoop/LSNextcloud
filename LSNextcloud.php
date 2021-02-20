@@ -1,6 +1,11 @@
 <?php
 
+require 'vendor/autoload.php';
+
+use League\Flysystem\Filesystem;
+use League\Flysystem\WebDAV\WebDAVAdapter;
 use LimeSurvey\PluginManager\PluginManager;
+use Sabre\DAV\Client;
 
 /**
  * Class LSNextcloud
@@ -50,11 +55,11 @@ class LSNextcloud extends PluginBase
                 'default' => 'LimeSurvey',
                 'help' => gT('The files will be saved in this folder.')
             ],
-            'enable' => [
+            'save_attachments' => [
                 'type' => 'checkbox',
-                'label' => gT('Enable globaly'),
+                'label' => gT('Save attachments'),
                 'default' => false,
-                'help' => gT('When enabled, these settings will be used for all forms.')
+                'help' => gT('When enabled all attachments will salves in Nextcloud')
             ]
         ];
         parent::__construct($manager, $id);
@@ -75,15 +80,129 @@ class LSNextcloud extends PluginBase
      */
     public function afterSurveyComplete()
     {
-        // throw new \InvalidArgumentException('config is not set');
-        $event = $this->getEvent();
-        $surveyId = $event->get('surveyId');
-        $path = $this->get(
-            'path',
-            'Survey',
-            $surveyId,
-            $this->get('path') // Global
-        );
+        $enable =
+            $this->get(
+                'enable',
+                'Survey',
+                $this->getEvent()->get('surveyId'),
+                null
+            );
+        if (!$enable) {
+            return;
+        }
+        $this->saveCsv();
+        $this->saveAttachments();
+    }
+
+    private function saveCsv()
+    {
+        $filesystem = $this->getFilesystem($this->getEvent()->get('surveyId'));
+        $this->rootPath =
+            $this->get(
+                'path',
+                'Survey',
+                $this->getEvent()->get('surveyId'),
+                $this->get('path') // Global
+            ) . '/' .
+            $this->getEvent()->get('surveyId');
+        if (!$filesystem->has($this->rootPath)) {
+            $filesystem->createDir($this->rootPath);
+        }
+        $tempFile = $this->getCsv();
+        $filesystem->put($this->rootPath . '/responses.csv', file_get_contents($tempFile));
+    }
+
+    private function saveAttachments()
+    {
+        $saveAttachments =
+            $this->get(
+                'save_attachments',
+                'Survey',
+                $this->getEvent()->get('surveyId'),
+                $this->get('save_attachments') // Global
+            );
+        if (!$saveAttachments) {
+            return;
+        }
+
+        $filesystem = $this->getFilesystem($this->getEvent()->get('surveyId'));
+        $response = Response::model($this->getEvent()->get('surveyId'))
+            ->findByAttributes([
+                'id' => $this->getEvent()->get('responseId')
+            ])
+            ->decrypt();
+        foreach ($response->getFiles() as $aFile) {
+            $sFileRealName = Yii::app()->getConfig('uploaddir') . "/surveys/" . $this->getEvent()->get('surveyId') . "/files/" . $aFile['filename'];
+            $filesystem->put(
+                $this->rootPath . '/' . $this->getEvent()->get('responseId') . '_' . $aFile['filename'] . '_' . $aFile['name'],
+                file_get_contents($sFileRealName)
+            );
+        }
+    }
+
+    /**
+     * Save file to CSV
+     *
+     * @return string File path
+     */
+    private function getCsv(): string
+    {
+        Yii::import('application.helpers.admin.export.FormattingOptions', true);
+        Yii::import('application.helpers.admin.exportresults_helper', true);
+        $survey = Survey::model()->findByPk($this->getEvent()->get('surveyId'));
+        if (!($maxId = SurveyDynamic::model($this->getEvent()->get('surveyId'))->getMaxId())) {
+            throw new Exception('No Data, could not get max id.', 1);
+        }
+        $oFormattingOptions = new FormattingOptions();
+        $oFormattingOptions->responseMinRecord = 1;
+        $oFormattingOptions->responseMaxRecord = $maxId;
+        $aFields = array_keys(createFieldMap($survey, 'full', true, false, $survey->language));
+        $aTokenFields = array('tid','participant_id','firstname','lastname','email','emailstatus','language','blacklisted','sent','remindersent','remindercount','completed','usesleft','validfrom','validuntil','mpid');
+        $oFormattingOptions->selectedColumns = array_merge($aFields,$aTokenFields, array_keys($survey->tokenAttributes));
+        $oFormattingOptions->responseCompletionState = 'all';
+        $oFormattingOptions->headingFormat = 'full';
+        $oFormattingOptions->answerFormat = 'long';
+        $oFormattingOptions->csvFieldSeparator = ',';
+        $oFormattingOptions->output = 'file';
+        $oExport = new ExportSurveyResultsService();
+        $tempFile = $oExport->exportResponses($this->getEvent()->get('surveyId'), $survey->language, 'csv', $oFormattingOptions, '');
+        return $tempFile;
+    }
+
+    /**
+     * Return Dav Filesystem
+     * 
+     * @param integer $surveyId
+     * @return Filesystem
+     */
+    private function getFilesystem(int $surveyId): Filesystem {
+        if (!$this->fileSystem) {
+            $config = [
+                'baseUri' => $this->get(
+                    'url',
+                    'Survey',
+                    $surveyId,
+                    $this->get('url') // Global
+                ),
+                'userName' => $this->get(
+                    'username',
+                    'Survey',
+                    $surveyId,
+                    $this->get('username') // Global
+                ),
+                'password' => $this->get(
+                    'password',
+                    'Survey',
+                    $surveyId,
+                    $this->get('password') // Global
+                )
+            ];
+            $client = new Client($config);
+            $prefix = 'remote.php/dav/files/' . $config['userName'] . '/';
+            $adapter = new WebDAVAdapter($client, $prefix);
+            $this->fileSystem = new Filesystem($adapter);
+        }
+        return $this->fileSystem;
     }
 
     /**
@@ -144,6 +263,28 @@ class LSNextcloud extends PluginBase
                         ),
                         'help' => gT('The files will be saved in this folder.')
                     ],
+                    'save_attachments' => [
+                        'type' => 'checkbox',
+                        'label' => gT('Save attachments'),
+                        'current' => $this->get(
+                            'path',
+                            'Survey',
+                            $event->get('survey'), // Survey
+                            $this->get('save_attachments') // Global
+                        ),
+                        'help' => gT('When enabled all attachments will salves in Nextcloud')
+                    ],
+                    'enable' => [
+                        'type' => 'checkbox',
+                        'label' => gT('Eable plugin'),
+                        'current' => $this->get(
+                            'path',
+                            'Survey',
+                            $event->get('survey'), // Survey
+                            null
+                        ),
+                        'help' => gT('When enabled the CSV will salve in Nextcloud')
+                    ]
                 ]
             ]
         );

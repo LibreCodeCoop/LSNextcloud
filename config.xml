@@ -6,8 +6,9 @@
         <creationDate>2021-02-17</creationDate>
         <last_update>2021-02-17</last_update>
         <author>Vitor Mattos (Lyseon Tech)</author>
-        <authorUrl>https://github.com/lyseontech</authorUrl>
+        <authorUrl>https://github.com/lyseontech/LSNextcloud</authorUrl>
         <supportUrl>https://github.com/lyseontech/LSNextcloud</supportUrl>
+        <email>contato@lt.coop.br</email>
         <copyright>Copyright (C) 2021 LibreCode. All rights reserved.</copyright>
         <license>GNU General Public License version 2 or later</license>
         <version>1.0.0</version>
