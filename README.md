@@ -8,7 +8,7 @@ Save all survey responses and their attachments automatically to a folder in you
 
 ### By zipfile
 
-- Download the zip of lates release
+- Download the zip of [lates release](https://github.com/LyseonTech/LSNextcloud/releases/latest)
 - Install the plugin in `Settings` > `Plugin Manager` > `Install zip`
 
 ### By repository
