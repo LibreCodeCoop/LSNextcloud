@@ -1,6 +1,6 @@
 # LimeSurvey LSNextcloud Plugin
 
-The Limesurvey LSNextcloud plugin allows you to integrate LS to Nextcloud
+Save all survey responses and their attachments automatically to a folder in your Nextcloud.
 
 ## Plugin Installation
 
