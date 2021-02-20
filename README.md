@@ -25,7 +25,7 @@ Before all...
 You can make a global setting or specific settings for each Survey.
 
 ### Global setting
-- `Settings` > `Plugin Manager
+- `Settings` > `Plugin Manager`
 - click on LSNextcloud
 - Configure the global settings
 
