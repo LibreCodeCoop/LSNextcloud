@@ -1,5 +1,5 @@
 {
-    "name": "lyseontech/ls-nextcloud",
+    "name": "librecodecoop/ls-nextcloud",
     "description": "Save all data of form into Nextcloud",
     "type": "library",
     "require": {
