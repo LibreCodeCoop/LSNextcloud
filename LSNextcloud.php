@@ -1,6 +1,6 @@
 <?php
 
-require 'vendor/autoload.php';
+require_once(__DIR__ . "/vendor/autoload.php");
 
 use League\Flysystem\Filesystem;
 use League\Flysystem\WebDAV\WebDAVAdapter;
